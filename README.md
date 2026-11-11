@@ -20,7 +20,22 @@ A simple, mobile-friendly personal health monitoring app built completely in **F
 
 After signing in, tap the profile icon in the top bar (**Login Details**) to set your preferred name, username, and password.
 
-## Run & Test
+## Download Android APK (GitHub)
+
+Every push to `main` automatically builds and publishes a signed Android APK via GitHub Actions (`.github/workflows/build-apk.yml`).
+
+### Option 1: Direct Download from GitHub Releases (Recommended on Phone)
+1. Open the repository on GitHub: https://github.com/nishathmuneen/basicapp
+2. Click **Releases** (or go directly to https://github.com/nishathmuneen/basicapp/releases/latest).
+3. Under **Assets**, download **`MyHealthTracker.apk`**.
+4. Open the downloaded `.apk` file on your Android phone (allow **Install unknown apps** for your browser/files app if prompted).
+
+### Option 2: Download from GitHub Actions Artifacts
+1. Open the **Actions** tab in the GitHub repository and select **Build Android APK**.
+2. Click the latest green completed workflow run (or click **Run workflow** to trigger one manually).
+3. Scroll to **Artifacts** and download **`MyHealthTracker-apk`**, then unzip it to get **`MyHealthTracker.apk`**.
+
+## Run & Test Locally
 
 From `flutter_app/`:
 
@@ -32,5 +47,3 @@ flutter test
 flutter run          # Launches on Windows desktop (no Developer Mode required)
 flutter run -d chrome
 ```
-
-> **Android note:** Building an Android APK or running on an Android emulator requires **Android Studio / Android SDK** installed so `flutter doctor` detects the Android toolchain.
