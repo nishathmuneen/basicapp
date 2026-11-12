@@ -4,6 +4,7 @@ import '../models/health_models.dart';
 import '../services/health_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatters.dart';
+import '../widgets/app_chrome.dart';
 import '../widgets/status_badge.dart';
 
 class ThresholdsSheet extends StatefulWidget {
@@ -154,45 +155,23 @@ class _ThresholdsSheetState extends State<ThresholdsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Target Ranges & Alerts',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const Divider(),
-              const Text(
-                'These defaults follow general clinical guidance. Adjust only if your doctor or nurse gave you personal target ranges.',
-                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Blood Glucose (mg/dL)',
-                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.skyDark),
-              ),
+    return AppSheetContainer(
+      title: 'Target Ranges & Alerts',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'These defaults follow general clinical guidance. Adjust only if your doctor or nurse gave you personal target ranges.',
+              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Blood Glucose (mg/dL)',
+              style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.tealDark),
+            ),
               const SizedBox(height: 8),
               _NumPair(
                 leftLabel: 'Low alert (below)',
@@ -217,7 +196,7 @@ class _ThresholdsSheetState extends State<ThresholdsSheet> {
               const SizedBox(height: 16),
               const Text(
                 'Blood Pressure (mmHg) & Heart Rate (bpm)',
-                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.skyDark),
+                style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.tealDark),
               ),
               const SizedBox(height: 8),
               _NumPair(
@@ -277,8 +256,7 @@ class _ThresholdsSheetState extends State<ThresholdsSheet> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

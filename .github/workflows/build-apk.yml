@@ -81,3 +81,4 @@ jobs:
               --notes "Latest Android APK built from commit \`${{ github.sha }}\` (Actions run #${{ github.run_number }})." \
               --latest
           fi
+

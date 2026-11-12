@@ -93,7 +93,7 @@ class ChartsScreen extends StatelessWidget {
               series: [
                 ChartSeriesConfig(
                   label: 'Systolic (top)',
-                  color: AppColors.skyPrimary,
+                  color: AppColors.turquoisePrimary,
                   values: data.bpPoints.map((p) => p.systolic.toDouble()).toList(),
                 ),
                 ChartSeriesConfig(

@@ -4,6 +4,7 @@ import '../models/health_models.dart';
 import '../services/health_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatters.dart';
+import '../widgets/app_chrome.dart';
 import '../widgets/status_badge.dart';
 
 class RecordBPSheet extends StatefulWidget {
@@ -117,36 +118,13 @@ class _RecordBPSheetState extends State<RecordBPSheet> {
     final sysMax = (widget.thresholds?.bpAttentionSystolic ?? 130) - 1;
     final diaMax = (widget.thresholds?.bpAttentionDiastolic ?? 80) - 1;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Record Blood Pressure',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Close',
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 10),
-            if (_savedReading != null) ...[
+    return AppSheetContainer(
+      title: 'Record Blood Pressure',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_savedReading != null) ...[
               HealthAlertBanner(
                 colorName: _savedReading!.evaluation.color,
                 badgeLabel: _savedReading!.evaluation.statusLabel,
@@ -314,7 +292,7 @@ class _RecordBPSheetState extends State<RecordBPSheet> {
                     const SizedBox(height: 18),
                     FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.skyDark,
+                        backgroundColor: AppColors.turquoiseDark,
                       ),
                       onPressed: _submitting ? null : _save,
                       child: Text(_submitting ? 'Saving...' : 'Save BP Reading'),
@@ -324,8 +302,7 @@ class _RecordBPSheetState extends State<RecordBPSheet> {
               ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 

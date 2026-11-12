@@ -12,6 +12,7 @@ import 'screens/reminders_screen.dart';
 import 'screens/thresholds_sheet.dart';
 import 'services/health_repository.dart';
 import 'theme/app_theme.dart';
+import 'widgets/app_chrome.dart';
 
 void main() {
   runApp(const MyHealthTrackerApp());
@@ -150,15 +151,19 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
     await _checkSession();
   }
 
-  void _openGlucoseSheet(BuildContext sheetContext) {
+  void _showSheet(BuildContext sheetContext, Widget sheet) {
     showModalBottomSheet<void>(
       context: sheetContext,
       isScrollControlled: true,
-      backgroundColor: AppColors.pageBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => RecordGlucoseSheet(
+      backgroundColor: Colors.transparent,
+      builder: (_) => sheet,
+    );
+  }
+
+  void _openGlucoseSheet(BuildContext sheetContext) {
+    _showSheet(
+      sheetContext,
+      RecordGlucoseSheet(
         repository: _repository,
         thresholds: _dashboard?.thresholds,
         onSaved: _loadAllData,
@@ -167,14 +172,9 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
   }
 
   void _openBPSheet(BuildContext sheetContext) {
-    showModalBottomSheet<void>(
-      context: sheetContext,
-      isScrollControlled: true,
-      backgroundColor: AppColors.pageBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => RecordBPSheet(
+    _showSheet(
+      sheetContext,
+      RecordBPSheet(
         repository: _repository,
         thresholds: _dashboard?.thresholds,
         onSaved: _loadAllData,
@@ -185,14 +185,9 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
   void _openThresholdsSheet(BuildContext sheetContext) {
     final thresholds = _dashboard?.thresholds;
     if (thresholds == null) return;
-    showModalBottomSheet<void>(
-      context: sheetContext,
-      isScrollControlled: true,
-      backgroundColor: AppColors.pageBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => ThresholdsSheet(
+    _showSheet(
+      sheetContext,
+      ThresholdsSheet(
         repository: _repository,
         thresholds: thresholds,
         onUpdated: _loadAllData,
@@ -203,14 +198,9 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
   void _openAccountSheet(BuildContext sheetContext) {
     final session = _session;
     if (session == null) return;
-    showModalBottomSheet<void>(
-      context: sheetContext,
-      isScrollControlled: true,
-      backgroundColor: AppColors.pageBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => AccountSheet(
+    _showSheet(
+      sheetContext,
+      AccountSheet(
         repository: _repository,
         session: session,
         onUpdated: (updated) {
@@ -233,8 +223,20 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
 
   Widget _buildHome() {
     if (_checkingAuth && _session == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return const AppBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppLogoMark(size: 72, borderRadius: 18, withWhiteFrame: true),
+                SizedBox(height: 16),
+                CircularProgressIndicator(),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -256,20 +258,25 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
     final dueCount = _dashboard?.dueReminders.length ?? 0;
 
     return Builder(
-      builder: (innerContext) => Scaffold(
-        appBar: AppBar(
-          title: const Row(
-            children: [
-              Icon(Icons.monitor_heart_rounded, color: AppColors.tealPrimary),
-              SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'My Health Tracker',
-                  overflow: TextOverflow.ellipsis,
+      builder: (innerContext) => AppBackground(
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(gradient: AppColors.headerGradient),
+            ),
+            title: const Row(
+              children: [
+                AppLogoMark(size: 32, borderRadius: 8, withWhiteFrame: true),
+                SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    'My Health Tracker',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           actions: [
             IconButton(
               tooltip: 'Login Details',
@@ -335,39 +342,47 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
             ],
           ),
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _selectedTab,
-          onDestinationSelected: (idx) => setState(() => _selectedTab = idx),
-          destinations: [
-            const NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home_rounded),
-              label: 'Home',
+        bottomNavigationBar: Container(
+          decoration: const BoxDecoration(
+            border: Border(
+              top: BorderSide(color: AppColors.turquoiseBorder, width: 1.2),
             ),
-            const NavigationDestination(
-              icon: Icon(Icons.history_outlined),
-              selectedIcon: Icon(Icons.history_rounded),
-              label: 'History',
-            ),
-            const NavigationDestination(
-              icon: Icon(Icons.show_chart_rounded),
-              selectedIcon: Icon(Icons.show_chart_rounded),
-              label: 'Charts',
-            ),
-            NavigationDestination(
-              icon: Badge(
-                isLabelVisible: dueCount > 0,
-                label: Text('$dueCount'),
-                child: const Icon(Icons.notifications_outlined),
+          ),
+          child: NavigationBar(
+            selectedIndex: _selectedTab,
+            onDestinationSelected: (idx) => setState(() => _selectedTab = idx),
+            destinations: [
+              const NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
+                label: 'Home',
               ),
-              selectedIcon: Badge(
-                isLabelVisible: dueCount > 0,
-                label: Text('$dueCount'),
-                child: const Icon(Icons.notifications_rounded),
+              const NavigationDestination(
+                icon: Icon(Icons.history_outlined),
+                selectedIcon: Icon(Icons.history_rounded),
+                label: 'History',
               ),
-              label: 'Reminders',
-            ),
-          ],
+              const NavigationDestination(
+                icon: Icon(Icons.show_chart_rounded),
+                selectedIcon: Icon(Icons.show_chart_rounded),
+                label: 'Charts',
+              ),
+              NavigationDestination(
+                icon: Badge(
+                  isLabelVisible: dueCount > 0,
+                  label: Text('$dueCount'),
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                selectedIcon: Badge(
+                  isLabelVisible: dueCount > 0,
+                  label: Text('$dueCount'),
+                  child: const Icon(Icons.notifications_rounded),
+                ),
+                label: 'Reminders',
+              ),
+            ],
+          ),
+        ),
         ),
       ),
     );

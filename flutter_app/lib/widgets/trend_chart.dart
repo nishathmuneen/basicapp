@@ -180,9 +180,9 @@ class _TrendChartCardState extends State<TrendChartCard> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.subtleBg,
+                    color: AppColors.turquoiseSoft,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.skyBorder),
+                    border: Border.all(color: AppColors.turquoiseBorder),
                   ),
                   child: Text(
                     '${formatDateTimeDisplay(widget.timestamps[activeIdx])}: '
@@ -246,9 +246,9 @@ class _TrendBanner extends StatelessWidget {
         fg = AppColors.greenText;
         prefix = '→ Steady';
       default:
-        bg = AppColors.subtleBg;
-        border = AppColors.skyBorder;
-        fg = AppColors.skyDark;
+        bg = AppColors.turquoiseSoft;
+        border = AppColors.turquoiseBorder;
+        fg = AppColors.tealDark;
         prefix = '• Info';
     }
 

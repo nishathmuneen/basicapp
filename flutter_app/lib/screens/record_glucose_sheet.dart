@@ -4,6 +4,7 @@ import '../models/health_models.dart';
 import '../services/health_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatters.dart';
+import '../widgets/app_chrome.dart';
 import '../widgets/status_badge.dart';
 
 const List<String> _glucoseTypes = [
@@ -117,36 +118,13 @@ class _RecordGlucoseSheetState extends State<RecordGlucoseSheet> {
     final lowTarget = widget.thresholds?.glucoseLowUrgent ?? 70;
     final highTarget = widget.thresholds?.targetMaxForType(_selectedType) ?? 130;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Record Blood Glucose',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Close',
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            const Divider(),
-            const SizedBox(height: 10),
-            if (_savedReading != null) ...[
+    return AppSheetContainer(
+      title: 'Record Blood Glucose',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_savedReading != null) ...[
               HealthAlertBanner(
                 colorName: _savedReading!.evaluation.color,
                 badgeLabel: _savedReading!.evaluation.statusLabel,
@@ -219,10 +197,10 @@ class _RecordGlucoseSheetState extends State<RecordGlucoseSheet> {
                         return ChoiceChip(
                           label: Text(typeOption),
                           selected: selected,
-                          selectedColor: AppColors.skyLight,
+                          selectedColor: AppColors.turquoiseLight,
                           labelStyle: TextStyle(
                             fontWeight: FontWeight.w700,
-                            color: selected ? AppColors.skyDark : AppColors.textPrimary,
+                            color: selected ? AppColors.tealDark : AppColors.textPrimary,
                           ),
                           onSelected: (_) {
                             setState(() => _selectedType = typeOption);
@@ -276,8 +254,7 @@ class _RecordGlucoseSheetState extends State<RecordGlucoseSheet> {
               ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 

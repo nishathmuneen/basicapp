@@ -8,6 +8,7 @@ import 'package:my_health_tracker/screens/record_bp_sheet.dart';
 import 'package:my_health_tracker/screens/record_glucose_sheet.dart';
 import 'package:my_health_tracker/services/health_evaluator.dart';
 import 'package:my_health_tracker/services/health_repository.dart';
+import 'package:my_health_tracker/widgets/app_chrome.dart';
 
 void main() {
   group('LocalHealthRepository unit tests', () {
@@ -130,6 +131,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // 1. Sign in using default credentials
+    expect(find.byType(AppBackground), findsOneWidget);
+    expect(find.byType(AppLogoMark), findsOneWidget);
     expect(find.text('Default Login Details'), findsOneWidget);
     await tester.ensureVisible(find.text('Use Default Details'));
     await tester.tap(find.text('Use Default Details'));
@@ -139,6 +142,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // 2. Home Dashboard
+    expect(find.byType(AppBackground), findsOneWidget);
+    expect(find.byType(AppLogoMark), findsWidgets);
     expect(find.text('Welcome to My Health Tracker'), findsOneWidget);
     expect(find.text('Add Glucose Reading'), findsOneWidget);
     expect(find.text('Add BP Reading'), findsOneWidget);

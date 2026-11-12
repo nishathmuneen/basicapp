@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/health_models.dart';
 import '../services/health_repository.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_chrome.dart';
 import '../widgets/status_badge.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -89,63 +90,52 @@ class _LoginScreenState extends State<LoginScreen> {
     final sessionInfo = widget.sessionInfo;
     final showDefaultHint = sessionInfo?.showDefaultHint ?? true;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(22),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                gradient: const LinearGradient(
-                                  colors: [AppColors.tealAccent, AppColors.skyPrimary],
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Card(
+                  color: AppColors.pageBg,
+                  child: Padding(
+                    padding: const EdgeInsets.all(22),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Row(
+                            children: [
+                              AppLogoMark(size: 54, borderRadius: 14),
+                              SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'My Health Tracker',
+                                      style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.tealDark,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Sign in to keep your readings private on this device',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: const Icon(
-                                Icons.monitor_heart_rounded,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'My Health Tracker',
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Sign in to keep your readings private on this device',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: AppColors.textMuted,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
                         const SizedBox(height: 22),
                         const Text(
                           'Username',
@@ -222,9 +212,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: AppColors.subtleBg,
+                              color: AppColors.turquoiseSoft,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.skyBorder),
+                              border: Border.all(color: AppColors.turquoiseBorder),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   'Default Login Details',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,
-                                    color: AppColors.skyDark,
+                                    color: AppColors.tealDark,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -271,6 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

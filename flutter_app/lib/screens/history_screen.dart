@@ -101,7 +101,7 @@ class HistoryScreen extends StatelessWidget {
                 ChoiceChip(
                   label: Text(opt.$2),
                   selected: category == opt.$1,
-                  selectedColor: AppColors.skyLight,
+                  selectedColor: AppColors.turquoiseLight,
                   onSelected: (_) => onCategoryChange(opt.$1),
                 ),
             ],
@@ -119,7 +119,7 @@ class HistoryScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    const Icon(Icons.history_rounded, size: 40, color: AppColors.skyPrimary),
+                    const Icon(Icons.history_rounded, size: 40, color: AppColors.tealAccent),
                     const SizedBox(height: 8),
                     const Text(
                       'No readings found for this period.',
@@ -162,7 +162,7 @@ class HistoryScreen extends StatelessWidget {
                                 '$dateText · $timeText',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.skyDark,
+                                  color: AppColors.tealDark,
                                   fontSize: 15,
                                 ),
                               ),

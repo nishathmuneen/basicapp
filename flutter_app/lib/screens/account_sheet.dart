@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/health_models.dart';
 import '../services/health_repository.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_chrome.dart';
 import '../widgets/status_badge.dart';
 
 class AccountSheet extends StatefulWidget {
@@ -80,40 +81,18 @@ class _AccountSheetState extends State<AccountSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Login Details',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded),
-                  ),
-                ],
-              ),
-              const Divider(),
-              const Text(
-                'Update your display name, username, or password. Enter your current password to confirm changes.',
-                style: TextStyle(fontSize: 13, color: AppColors.textMuted),
-              ),
+    return AppSheetContainer(
+      title: 'Login Details',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Update your display name, username, or password. Enter your current password to confirm changes.',
+              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+            ),
               const SizedBox(height: 14),
               TextFormField(
                 controller: _nameController,
@@ -187,8 +166,7 @@ class _AccountSheetState extends State<AccountSheet> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

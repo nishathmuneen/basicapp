@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/health_models.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatters.dart';
+import '../widgets/app_chrome.dart';
 import '../widgets/status_badge.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -60,29 +61,39 @@ class DashboardScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFF0F9FF), AppColors.tealSoft],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppColors.welcomeCardGradient,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.skyBorder, width: 1.5),
+              border: Border.all(color: AppColors.turquoiseBorder, width: 1.5),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  welcomeTitle,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Track your blood sugar, blood pressure, and heart rate simply.',
-                  style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const AppLogoMark(size: 42, borderRadius: 11),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            welcomeTitle,
+                            style: const TextStyle(
+                              fontSize: 21,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.tealDark,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Track your blood sugar, blood pressure, and heart rate simply.',
+                            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -169,7 +180,7 @@ class DashboardScreen extends StatelessWidget {
                   title: 'Add Glucose Reading',
                   subtitle: 'mg/dL & meal type',
                   icon: Icons.water_drop_rounded,
-                  color: AppColors.tealPrimary,
+                  gradientColors: const [AppColors.tealPrimary, AppColors.tealAccent],
                   onTap: onAddGlucose,
                 ),
               ),
@@ -179,7 +190,7 @@ class DashboardScreen extends StatelessWidget {
                   title: 'Add BP Reading',
                   subtitle: 'BP & heart rate',
                   icon: Icons.favorite_rounded,
-                  color: AppColors.skyDark,
+                  gradientColors: const [AppColors.turquoiseDark, AppColors.turquoisePrimary],
                   onTap: onAddBP,
                 ),
               ),
@@ -192,23 +203,27 @@ class DashboardScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF0F9FF),
+                gradient: const LinearGradient(
+                  colors: [AppColors.pageBg, AppColors.turquoiseSoft],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF7DD3FC), width: 1.8),
+                border: Border.all(color: AppColors.turquoiseBorder, width: 1.8),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.notifications_active_outlined, color: AppColors.skyDark),
+                      Icon(Icons.notifications_active_outlined, color: AppColors.tealDark),
                       SizedBox(width: 8),
                       Text(
                         "Today's Reminders Due",
                         style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
-                          color: AppColors.skyDark,
+                          color: AppColors.tealDark,
                         ),
                       ),
                     ],
@@ -322,9 +337,13 @@ class DashboardScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: AppColors.subtleBg,
+              gradient: const LinearGradient(
+                colors: [AppColors.pageBg, AppColors.turquoiseSoft],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.skyBorder),
+              border: Border.all(color: AppColors.turquoiseBorder, width: 1.4),
             ),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,59 +377,69 @@ class _LargeActionButton extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.color,
+    required this.gradientColors,
     required this.onTap,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
-  final Color color;
+  final List<Color> gradientColors;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: color,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 112),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 112),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 24),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 24),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
+                  const SizedBox(height: 10),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.92),
-                    fontSize: 13,
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -458,7 +487,7 @@ class _MetricCard extends StatelessWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
-                      color: AppColors.skyDark,
+                      color: AppColors.tealDark,
                     ),
                   ),
                 ),
