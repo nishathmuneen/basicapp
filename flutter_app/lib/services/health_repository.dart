@@ -7,6 +7,7 @@ import 'package:sqflite/sqflite.dart';
 import '../models/health_models.dart';
 import '../utils/date_formatters.dart';
 import 'health_evaluator.dart';
+import 'lifestyle_advisor.dart';
 import 'kv_storage_stub.dart'
     if (dart.library.js_interop) 'kv_storage_web.dart'
     if (dart.library.io) 'kv_storage_io.dart';
@@ -68,7 +69,7 @@ class LocalHealthRepository {
     final dbPath = p.join(dbDir, 'health_tracker.db');
     _db = await openDatabase(
       dbPath,
-      version: 1,
+      version: 2,
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE readings (
@@ -127,10 +128,32 @@ class LocalHealthRepository {
             authenticated INTEGER NOT NULL DEFAULT 0
           )
         ''');
+        await _createLifestyleTable(db);
+      },
+      onUpgrade: (db, oldVersion, _) async {
+        if (oldVersion < 2) {
+          await _createLifestyleTable(db);
+        }
       },
     );
     await _seedSqliteDefaults(_db!);
     return _db!;
+  }
+
+  Future<void> _createLifestyleTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS lifestyle_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        recorded_at TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        sleep_hours REAL,
+        weight_kg REAL
+      )
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_lifestyle_recorded_at
+      ON lifestyle_logs (recorded_at DESC, id DESC)
+    ''');
   }
 
   Future<void> _seedSqliteDefaults(Database db) async {
@@ -163,11 +186,16 @@ class LocalHealthRepository {
         ? testStore![_prefsKey]
         : await readLocalStore(_prefsKey);
     if (raw != null && raw.isNotEmpty) {
-      return jsonDecode(raw) as Map<String, dynamic>;
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      decoded['lifestyle_logs'] ??= <Map<String, dynamic>>[];
+      decoded['next_lifestyle_id'] ??= 1;
+      return decoded;
     }
     final initial = <String, dynamic>{
       'next_id': 1,
+      'next_lifestyle_id': 1,
       'readings': <Map<String, dynamic>>[],
+      'lifestyle_logs': <Map<String, dynamic>>[],
       'thresholds': defaultThresholds.toJson(),
       'reminders': _defaultRemindersList(),
       'account': {
@@ -280,6 +308,50 @@ class LocalHealthRepository {
         .map((e) => Map<String, dynamic>.from(e as Map))
         .where((r) {
       if (category != 'all' && r['category'] != category) return false;
+      final rec = r['recorded_at'] as String;
+      if (startBound != null && endBound != null) {
+        return rec.compareTo(startBound) >= 0 && rec.compareTo(endBound) <= 0;
+      }
+      return true;
+    }).toList();
+
+    rows.sort((a, b) {
+      final cmp = (a['recorded_at'] as String).compareTo(b['recorded_at'] as String);
+      if (cmp != 0) return ascending ? cmp : -cmp;
+      final idCmp = (a['id'] as int).compareTo(b['id'] as int);
+      return ascending ? idCmp : -idCmp;
+    });
+    return rows;
+  }
+
+  Future<List<Map<String, dynamic>>> _queryLifestyleRows({
+    required String period,
+    required DateTime referenceDate,
+    bool ascending = false,
+  }) async {
+    final (startBound, endBound) = _periodBounds(period, referenceDate);
+    final orderDir = ascending ? 'ASC' : 'DESC';
+
+    if (_useSqflite) {
+      final db = await _getDb();
+      final where = <String>[];
+      final args = <Object>[];
+      if (startBound != null && endBound != null) {
+        where.add('recorded_at >= ? AND recorded_at <= ?');
+        args.addAll([startBound, endBound]);
+      }
+      return db.query(
+        'lifestyle_logs',
+        where: where.isEmpty ? null : where.join(' AND '),
+        whereArgs: args.isEmpty ? null : args,
+        orderBy: 'recorded_at $orderDir, id $orderDir',
+      );
+    }
+
+    final state = await _loadPrefsState();
+    final rows = (state['lifestyle_logs'] as List<dynamic>? ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .where((r) {
       final rec = r['recorded_at'] as String;
       if (startBound != null && endBound != null) {
         return rec.compareTo(startBound) >= 0 && rec.compareTo(endBound) <= 0;
@@ -501,6 +573,24 @@ class LocalHealthRepository {
       if (!done) due.add(rem);
     }
 
+    final latestLifestyle = await getLatestCompositeLifestyle(referenceDate: localNow);
+    final latestVitalAt =
+        allRows.isNotEmpty ? allRows.first['recorded_at'] as String : null;
+    final latestLifestyleAt = latestLifestyle?.recordedAt;
+    String? lastRecordedAt = latestVitalAt;
+    if (latestLifestyleAt != null &&
+        (lastRecordedAt == null || latestLifestyleAt.compareTo(lastRecordedAt) > 0)) {
+      lastRecordedAt = latestLifestyleAt;
+    }
+
+    final guidancePlan = buildLifestylePlan(
+      latestGlucose: latestGlucose,
+      latestBp: latestBp,
+      latestHeartRateStatus: latestHrStatus,
+      latestLifestyle: latestLifestyle,
+      thresholds: thresholds,
+    );
+
     return DashboardData(
       displayName: acc['display_name'] as String,
       latestGlucose: latestGlucose,
@@ -508,7 +598,9 @@ class LocalHealthRepository {
       latestHeartRate: latestHr,
       latestHeartRateAt: latestHrRow?['recorded_at'] as String?,
       latestHeartRateStatus: latestHrStatus,
-      lastRecordedAt: allRows.isNotEmpty ? allRows.first['recorded_at'] as String : null,
+      latestLifestyle: latestLifestyle,
+      guidancePlan: guidancePlan,
+      lastRecordedAt: lastRecordedAt,
       healthStatus: status,
       healthStatusColor: color,
       thresholds: thresholds,
@@ -640,6 +732,179 @@ class LocalHealthRepository {
       (item) => (item as Map)['id'] == id,
     );
     await _savePrefsState(state);
+  }
+
+  Future<LifestyleReading> createLifestyleReading({
+    double? sleepHours,
+    double? weightKg,
+    DateTime? recordedAt,
+  }) async {
+    if (sleepHours == null && weightKg == null) {
+      throw StoreException('Enter sleep hours or weight to save.');
+    }
+    if (sleepHours != null && (sleepHours < 0 || sleepHours > 24)) {
+      throw StoreException('Sleep hours must be between 0 and 24 hours.');
+    }
+    if (weightKg != null && (weightKg < 20 || weightKg > 400)) {
+      throw StoreException('Weight must be between 20 and 400 kg (44–880 lbs).');
+    }
+
+    final cleanSleep = sleepHours != null
+        ? double.parse(sleepHours.toStringAsFixed(1))
+        : null;
+    final cleanWeight = weightKg != null
+        ? double.parse(weightKg.toStringAsFixed(1))
+        : null;
+    final when = recordedAt ?? DateTime.now();
+    final recStr = toApiDateTimeString(when);
+    final createdStr = '${toApiDateTimeString(DateTime.now())}:00';
+
+    late Map<String, dynamic> inserted;
+    if (_useSqflite) {
+      final db = await _getDb();
+      final id = await db.insert('lifestyle_logs', {
+        'recorded_at': recStr,
+        'created_at': createdStr,
+        'sleep_hours': cleanSleep,
+        'weight_kg': cleanWeight,
+      });
+      final rows = await db.query(
+        'lifestyle_logs',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      inserted = rows.first;
+    } else {
+      final state = await _loadPrefsState();
+      final id = (state['next_lifestyle_id'] as int?) ?? 1;
+      state['next_lifestyle_id'] = id + 1;
+      inserted = {
+        'id': id,
+        'recorded_at': recStr,
+        'created_at': createdStr,
+        'sleep_hours': cleanSleep,
+        'weight_kg': cleanWeight,
+      };
+      final list = (state['lifestyle_logs'] as List<dynamic>? ?? <dynamic>[]);
+      list.add(inserted);
+      state['lifestyle_logs'] = list;
+      await _savePrefsState(state);
+    }
+    return LifestyleReading.fromJson(inserted);
+  }
+
+  Future<List<LifestyleReading>> getLifestyleReadings({
+    String period = 'all',
+    DateTime? referenceDate,
+  }) async {
+    final rows = await _queryLifestyleRows(
+      period: period,
+      referenceDate: referenceDate ?? DateTime.now(),
+    );
+    return rows.map(LifestyleReading.fromJson).toList();
+  }
+
+  Future<void> deleteLifestyleReading(int id) async {
+    if (_useSqflite) {
+      final db = await _getDb();
+      await db.delete('lifestyle_logs', where: 'id = ?', whereArgs: [id]);
+      return;
+    }
+    final state = await _loadPrefsState();
+    (state['lifestyle_logs'] as List<dynamic>? ?? []).removeWhere(
+      (item) => (item as Map)['id'] == id,
+    );
+    await _savePrefsState(state);
+  }
+
+  /// Combines the latest recorded sleep hours and latest recorded weight so
+  /// updating one field preserves the latest known context for the other.
+  Future<LifestyleReading?> getLatestCompositeLifestyle({
+    DateTime? referenceDate,
+  }) async {
+    final rows = await _queryLifestyleRows(
+      period: 'all',
+      referenceDate: referenceDate ?? DateTime.now(),
+    );
+    if (rows.isEmpty) return null;
+
+    double? latestSleep;
+    String? sleepAt;
+    double? latestWeight;
+    String? weightAt;
+
+    for (final row in rows) {
+      if (latestSleep == null && row['sleep_hours'] != null) {
+        latestSleep = (row['sleep_hours'] as num).toDouble();
+        sleepAt = row['recorded_at'] as String;
+      }
+      if (latestWeight == null && row['weight_kg'] != null) {
+        latestWeight = (row['weight_kg'] as num).toDouble();
+        weightAt = row['recorded_at'] as String;
+      }
+      if (latestSleep != null && latestWeight != null) break;
+    }
+
+    if (latestSleep == null && latestWeight == null) return null;
+    final latestAt = (sleepAt != null &&
+            (weightAt == null || sleepAt.compareTo(weightAt) >= 0))
+        ? sleepAt
+        : weightAt!;
+
+    return LifestyleReading(
+      id: (rows.first['id'] as num).toInt(),
+      recordedAt: latestAt,
+      createdAt: rows.first['created_at'] as String? ?? latestAt,
+      sleepHours: latestSleep,
+      weightKg: latestWeight,
+    );
+  }
+
+  Future<DailyGuidancePlan> buildLatestGuidancePlan({
+    HealthReading? latestGlucoseOverride,
+    HealthReading? latestBpOverride,
+    LifestyleReading? latestLifestyleOverride,
+  }) async {
+    final thresholds = await _readThresholds();
+    final now = DateTime.now();
+    HealthReading? latestGlucose = latestGlucoseOverride;
+    HealthReading? latestBp = latestBpOverride;
+    int? latestHr;
+
+    if (latestGlucose == null || latestBp == null) {
+      final rows = await _queryReadingRows(
+        period: 'all',
+        category: 'all',
+        referenceDate: now,
+      );
+      for (final row in rows) {
+        if (latestGlucose == null && row['category'] == 'glucose') {
+          latestGlucose = _buildReading(row, thresholds);
+        }
+        if (latestBp == null && row['category'] == 'bp') {
+          latestBp = _buildReading(row, thresholds);
+        }
+        if (latestHr == null && row['heart_rate'] != null) {
+          latestHr = (row['heart_rate'] as num).toInt();
+        }
+        if (latestGlucose != null && latestBp != null && latestHr != null) break;
+      }
+    }
+
+    final effectiveHr = latestBp?.heartRate ?? latestHr;
+    final latestHrStatus = effectiveHr != null
+        ? evaluateHeartRate(heartRate: effectiveHr, thresholds: thresholds)
+        : null;
+    final lifestyle =
+        latestLifestyleOverride ?? await getLatestCompositeLifestyle(referenceDate: now);
+
+    return buildLifestylePlan(
+      latestGlucose: latestGlucose,
+      latestBp: latestBp,
+      latestHeartRateStatus: latestHrStatus,
+      latestLifestyle: lifestyle,
+      thresholds: thresholds,
+    );
   }
 
   Future<ChartsData> getCharts({

@@ -5,6 +5,7 @@ import '../services/health_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatters.dart';
 import '../widgets/app_chrome.dart';
+import '../widgets/guidance_plan_card.dart';
 import '../widgets/status_badge.dart';
 
 const List<String> _glucoseTypes = [
@@ -39,6 +40,7 @@ class _RecordGlucoseSheetState extends State<RecordGlucoseSheet> {
   bool _submitting = false;
   String? _errorMessage;
   HealthReading? _savedReading;
+  DailyGuidancePlan? _guidancePlan;
 
   @override
   void dispose() {
@@ -93,8 +95,14 @@ class _RecordGlucoseSheetState extends State<RecordGlucoseSheet> {
         glucoseType: _selectedType,
         recordedAt: _recordedAt,
       );
+      final plan = await widget.repository.buildLatestGuidancePlan(
+        latestGlucoseOverride: result,
+      );
       if (!mounted) return;
-      setState(() => _savedReading = result);
+      setState(() {
+        _savedReading = result;
+        _guidancePlan = plan;
+      });
       widget.onSaved();
     } catch (err) {
       if (!mounted) return;
@@ -109,6 +117,7 @@ class _RecordGlucoseSheetState extends State<RecordGlucoseSheet> {
       _levelController.clear();
       _recordedAt = DateTime.now();
       _savedReading = null;
+      _guidancePlan = null;
       _errorMessage = null;
     });
   }
@@ -134,6 +143,13 @@ class _RecordGlucoseSheetState extends State<RecordGlucoseSheet> {
                     _savedReading!.evaluation.summary,
                 subtitle: 'Target range: ${_savedReading!.evaluation.targetRangeText}',
               ),
+              if (_guidancePlan != null) ...[
+                const SizedBox(height: 14),
+                GuidancePlanCard(
+                  plan: _guidancePlan!,
+                  compact: true,
+                ),
+              ],
               const SizedBox(height: 18),
               Row(
                 children: [

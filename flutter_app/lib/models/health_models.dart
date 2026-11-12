@@ -237,6 +237,8 @@ class DashboardData {
     this.latestHeartRate,
     this.latestHeartRateAt,
     this.latestHeartRateStatus,
+    this.latestLifestyle,
+    this.guidancePlan,
     this.lastRecordedAt,
     required this.healthStatus,
     required this.healthStatusColor,
@@ -250,6 +252,8 @@ class DashboardData {
   final int? latestHeartRate;
   final String? latestHeartRateAt;
   final EvaluationResult? latestHeartRateStatus;
+  final LifestyleReading? latestLifestyle;
+  final DailyGuidancePlan? guidancePlan;
   final String? lastRecordedAt;
   final String healthStatus;
   final String healthStatusColor;
@@ -403,4 +407,68 @@ class ChartsData {
     );
   }
 }
+
+class LifestyleReading {
+  const LifestyleReading({
+    required this.id,
+    required this.recordedAt,
+    required this.createdAt,
+    this.sleepHours,
+    this.weightKg,
+  });
+
+  final int id;
+  final String recordedAt;
+  final String createdAt;
+  final double? sleepHours;
+  final double? weightKg;
+
+  double? get weightLbs =>
+      weightKg != null ? double.parse((weightKg! * 2.20462262).toStringAsFixed(1)) : null;
+
+  factory LifestyleReading.fromJson(Map<String, dynamic> json) {
+    return LifestyleReading(
+      id: (json['id'] as num).toInt(),
+      recordedAt: json['recorded_at'] as String,
+      createdAt: (json['created_at'] as String?) ?? (json['recorded_at'] as String),
+      sleepHours: (json['sleep_hours'] as num?)?.toDouble(),
+      weightKg: (json['weight_kg'] as num?)?.toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'recorded_at': recordedAt,
+      'created_at': createdAt,
+      'sleep_hours': sleepHours,
+      'weight_kg': weightKg,
+    };
+  }
+}
+
+class DailyGuidancePlan {
+  const DailyGuidancePlan({
+    required this.headline,
+    required this.toneColor,
+    required this.exerciseSafetyLevel,
+    this.safetyNote,
+    required this.dietTips,
+    required this.exerciseRoutine,
+    this.sleepSummary,
+    this.weightSummary,
+    required this.disclaimer,
+  });
+
+  final String headline;
+  final String toneColor;
+  final String exerciseSafetyLevel;
+  final String? safetyNote;
+  final List<String> dietTips;
+  final List<String> exerciseRoutine;
+  final String? sleepSummary;
+  final String? weightSummary;
+  final String disclaimer;
+}
+
 

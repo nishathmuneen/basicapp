@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../models/health_models.dart';
+import '../services/lifestyle_advisor.dart';
 import '../theme/app_theme.dart';
 import '../utils/date_formatters.dart';
 import '../widgets/app_chrome.dart';
+import '../widgets/guidance_plan_card.dart';
 import '../widgets/status_badge.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -15,6 +17,7 @@ class DashboardScreen extends StatelessWidget {
     required this.onRefresh,
     required this.onAddGlucose,
     required this.onAddBP,
+    this.onAddLifestyle,
     required this.onOpenThresholds,
     required this.onOpenAccount,
     required this.onGoToReminders,
@@ -26,6 +29,7 @@ class DashboardScreen extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final VoidCallback onAddGlucose;
   final VoidCallback onAddBP;
+  final VoidCallback? onAddLifestyle;
   final VoidCallback onOpenThresholds;
   final VoidCallback onOpenAccount;
   final VoidCallback onGoToReminders;
@@ -50,6 +54,8 @@ class DashboardScreen extends StatelessWidget {
     final latestBp = data?.latestBp;
     final latestHr = data?.latestHeartRate;
     final latestHrStatus = data?.latestHeartRateStatus;
+    final latestLifestyle = data?.latestLifestyle;
+    final guidancePlan = data?.guidancePlan;
     final dueReminders = data?.dueReminders ?? const <ReminderItem>[];
 
     return RefreshIndicator(
@@ -196,6 +202,68 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
+          if (onAddLifestyle != null) ...[
+            const SizedBox(height: 10),
+            Material(
+              color: AppColors.pageBg,
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                onTap: onAddLifestyle,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.turquoiseBorder, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.turquoiseSoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.bedtime_rounded,
+                          color: AppColors.tealDark,
+                          size: 21,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Log Sleep & Weight',
+                              style: TextStyle(
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.tealDark,
+                              ),
+                            ),
+                            Text(
+                              _lifestyleSubtitle(latestLifestyle),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.tealPrimary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
 
           // Due Reminders Banner
           if (dueReminders.isNotEmpty) ...[
@@ -332,6 +400,32 @@ class DashboardScreen extends StatelessWidget {
                 ? 'Typical resting range: ${latestHrStatus.targetRangeText}'
                 : null,
           ),
+          const SizedBox(height: 12),
+
+          _MetricCard(
+            label: 'Sleep & Weight',
+            icon: Icons.bedtime_outlined,
+            badgeColor: _lifestyleBadgeColor(latestLifestyle),
+            badgeLabel: _lifestyleBadgeLabel(latestLifestyle),
+            valueText: _lifestyleValueText(latestLifestyle),
+            unit: _lifestyleUnitText(latestLifestyle),
+            detail: latestLifestyle != null
+                ? _lifestyleDetailText(latestLifestyle)
+                : 'Optional — log sleep hours and weight to tailor your diet & exercise plan.',
+            note: latestLifestyle?.sleepHours != null &&
+                    latestLifestyle!.sleepHours! < 6.0
+                ? 'Short sleep (< 6 hrs): keep activity gentle today.'
+                : null,
+          ),
+
+          if (guidancePlan != null) ...[
+            const SizedBox(height: 18),
+            GuidancePlanCard(
+              plan: guidancePlan,
+              title: "Today's Diet & Exercise Plan",
+              onUpdateLifestyle: onAddLifestyle,
+            ),
+          ],
 
           const SizedBox(height: 18),
           Container(
@@ -370,6 +464,67 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+String _lifestyleSubtitle(LifestyleReading? lifestyle) {
+  if (lifestyle == null) return 'Tailor diet & exercise suggestions';
+  final parts = <String>[];
+  if (lifestyle.sleepHours != null) {
+    parts.add('${formatHoursValue(lifestyle.sleepHours!)}h sleep');
+  }
+  if (lifestyle.weightKg != null) {
+    parts.add('${formatWeightKg(lifestyle.weightKg!)} kg');
+  }
+  return parts.isEmpty ? 'Tailor diet & exercise suggestions' : parts.join(' · ');
+}
+
+String _lifestyleBadgeColor(LifestyleReading? lifestyle) {
+  final sleep = lifestyle?.sleepHours;
+  if (sleep == null) {
+    return lifestyle?.weightKg != null ? 'green' : 'neutral';
+  }
+  if (sleep < 6.0 || sleep > 9.0) return 'yellow';
+  return 'green';
+}
+
+String _lifestyleBadgeLabel(LifestyleReading? lifestyle) {
+  if (lifestyle == null) return 'Optional';
+  final sleep = lifestyle.sleepHours;
+  if (sleep == null) return 'Logged';
+  if (sleep < 6.0) return 'Short Sleep';
+  if (sleep > 9.0) return 'Long Sleep';
+  return 'Healthy Rest';
+}
+
+String? _lifestyleValueText(LifestyleReading? lifestyle) {
+  if (lifestyle == null) return null;
+  if (lifestyle.sleepHours != null && lifestyle.weightKg != null) {
+    return '${formatHoursValue(lifestyle.sleepHours!)}h · ${formatWeightKg(lifestyle.weightKg!)} kg';
+  }
+  if (lifestyle.sleepHours != null) {
+    return formatHoursValue(lifestyle.sleepHours!);
+  }
+  if (lifestyle.weightKg != null) {
+    return formatWeightKg(lifestyle.weightKg!);
+  }
+  return null;
+}
+
+String _lifestyleUnitText(LifestyleReading? lifestyle) {
+  if (lifestyle == null) return '';
+  if (lifestyle.sleepHours != null && lifestyle.weightKg != null) return '';
+  if (lifestyle.sleepHours != null) return 'hrs';
+  if (lifestyle.weightKg != null) return 'kg';
+  return '';
+}
+
+String _lifestyleDetailText(LifestyleReading lifestyle) {
+  final parts = <String>[];
+  if (lifestyle.weightKg != null) {
+    parts.add('${lifestyle.weightLbs!.toStringAsFixed(1)} lbs');
+  }
+  parts.add(formatDateTimeDisplay(lifestyle.recordedAt));
+  return parts.join(' · ');
 }
 
 class _LargeActionButton extends StatelessWidget {

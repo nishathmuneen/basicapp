@@ -6,8 +6,10 @@ import 'package:my_health_tracker/screens/charts_screen.dart';
 import 'package:my_health_tracker/screens/dashboard_screen.dart';
 import 'package:my_health_tracker/screens/record_bp_sheet.dart';
 import 'package:my_health_tracker/screens/record_glucose_sheet.dart';
+import 'package:my_health_tracker/screens/record_lifestyle_sheet.dart';
 import 'package:my_health_tracker/services/health_evaluator.dart';
 import 'package:my_health_tracker/services/health_repository.dart';
+import 'package:my_health_tracker/services/lifestyle_advisor.dart';
 import 'package:my_health_tracker/widgets/app_chrome.dart';
 
 void main() {
@@ -164,6 +166,14 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.descendant(
+        of: find.byType(RecordGlucoseSheet),
+        matching: find.text('Suggested Diet & Exercise Plan'),
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.text('Done'));
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
@@ -188,6 +198,37 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.descendant(
+        of: find.byType(RecordBPSheet),
+        matching: find.text('Suggested Diet & Exercise Plan'),
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.text('Done'));
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    // 4b. Log Sleep & Weight and check updated plan
+    await tester.tap(find.text('Log Sleep & Weight'));
+    await tester.pumpAndSettle();
+    final lifestyleFields = find.descendant(
+      of: find.byType(RecordLifestyleSheet),
+      matching: find.byType(TextFormField),
+    );
+    await tester.enterText(lifestyleFields.at(0), '5.5');
+    await tester.enterText(lifestyleFields.at(1), '72');
+    await tester.ensureVisible(find.text('Save Sleep & Weight'));
+    await tester.tap(find.text('Save Sleep & Weight'));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(RecordLifestyleSheet),
+        matching: find.text('Updated Diet & Exercise Plan'),
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.text('Done'));
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
@@ -212,6 +253,30 @@ void main() {
     await tester.scrollUntilVisible(find.text('84'), 200, scrollable: dashboardList);
     expect(
       find.descendant(of: find.byType(DashboardScreen), matching: find.text('84')),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.text('5.5h · 72 kg'),
+      200,
+      scrollable: dashboardList,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(DashboardScreen),
+        matching: find.text('5.5h · 72 kg'),
+      ),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.text("Today's Diet & Exercise Plan"),
+      200,
+      scrollable: dashboardList,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(DashboardScreen),
+        matching: find.text("Today's Diet & Exercise Plan"),
+      ),
       findsOneWidget,
     );
 
@@ -278,6 +343,89 @@ void main() {
     await tester.tap(find.byTooltip('Sign Out'));
     await tester.pumpAndSettle();
     expect(find.text('Sign In'), findsOneWidget);
+  });
+
+  group('Lifestyle advisor and persistence', () {
+    test('Low glucose safety override blocks exercise and prioritizes fast-acting carbs',
+        () async {
+      final store = <String, String>{};
+      final repo = LocalHealthRepository(testStore: store);
+      final reading = await repo.createGlucoseReading(
+        glucoseValue: 62,
+        glucoseType: 'Fasting',
+        recordedAt: DateTime(2026, 3, 18, 8, 0),
+      );
+      final plan = await repo.buildLatestGuidancePlan(latestGlucoseOverride: reading);
+
+      expect(plan.toneColor, 'red');
+      expect(plan.exerciseSafetyLevel, 'blocked');
+      expect(plan.safetyNote, contains('Low blood sugar'));
+      expect(plan.dietTips.first, contains('15 g fast-acting carbohydrates'));
+      expect(plan.exerciseRoutine.first, contains('Do not exercise right now'));
+    });
+
+    test('Urgent high BP pauses strenuous exercise and advises low-sodium meals',
+        () async {
+      final store = <String, String>{};
+      final repo = LocalHealthRepository(testStore: store);
+      final reading = await repo.createBPReading(
+        systolic: 186,
+        diastolic: 116,
+        heartRate: 88,
+        recordedAt: DateTime(2026, 3, 18, 9, 0),
+      );
+      final plan = await repo.buildLatestGuidancePlan(latestBpOverride: reading);
+
+      expect(plan.toneColor, 'red');
+      expect(plan.exerciseSafetyLevel, 'blocked');
+      expect(plan.dietTips.join(' '), contains('low in sodium'));
+      expect(plan.exerciseRoutine.join(' '), contains('Skip cardio'));
+    });
+
+    test('Elevated glucose + BP + short sleep + weight tailors gentle guidance and persists',
+        () async {
+      final store = <String, String>{};
+      final repo = LocalHealthRepository(testStore: store);
+      await repo.createGlucoseReading(
+        glucoseValue: 196,
+        glucoseType: 'After Meal',
+        recordedAt: DateTime(2026, 3, 18, 13, 0),
+      );
+      await repo.createBPReading(
+        systolic: 138,
+        diastolic: 86,
+        heartRate: 76,
+        recordedAt: DateTime(2026, 3, 18, 13, 15),
+      );
+      await repo.createLifestyleReading(
+        sleepHours: 5.0,
+        recordedAt: DateTime(2026, 3, 18, 7, 30),
+      );
+      await repo.createLifestyleReading(
+        weightKg: 78.5,
+        recordedAt: DateTime(2026, 3, 18, 7, 45),
+      );
+
+      final reopenedRepo = LocalHealthRepository(testStore: store);
+      final dashboard = await reopenedRepo.getDashboard(
+        now: DateTime(2026, 3, 18, 14, 0),
+      );
+
+      expect(dashboard.latestLifestyle?.sleepHours, 5.0);
+      expect(dashboard.latestLifestyle?.weightKg, 78.5);
+      final plan = dashboard.guidancePlan!;
+      expect(plan.toneColor, 'yellow');
+      expect(plan.exerciseSafetyLevel, 'gentle');
+      expect(plan.dietTips.first, contains('low-sodium, low-glycemic'));
+      expect(plan.exerciseRoutine.first, contains('keep activity gentle'));
+      expect(plan.sleepSummary, contains('5 hrs'));
+      expect(plan.weightSummary, contains('78.5 kg'));
+      expect(plan.disclaimer, wellnessDisclaimer);
+
+      final baselinePlan = buildLifestylePlan();
+      expect(baselinePlan.toneColor, 'green');
+      expect(baselinePlan.exerciseSafetyLevel, 'standard');
+    });
   });
 }
 

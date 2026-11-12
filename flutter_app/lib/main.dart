@@ -8,6 +8,7 @@ import 'screens/history_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/record_bp_sheet.dart';
 import 'screens/record_glucose_sheet.dart';
+import 'screens/record_lifestyle_sheet.dart';
 import 'screens/reminders_screen.dart';
 import 'screens/thresholds_sheet.dart';
 import 'services/health_repository.dart';
@@ -182,6 +183,17 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
     );
   }
 
+  void _openLifestyleSheet(BuildContext sheetContext) {
+    _showSheet(
+      sheetContext,
+      RecordLifestyleSheet(
+        repository: _repository,
+        initialLifestyle: _dashboard?.latestLifestyle,
+        onSaved: _loadAllData,
+      ),
+    );
+  }
+
   void _openThresholdsSheet(BuildContext sheetContext) {
     final thresholds = _dashboard?.thresholds;
     if (thresholds == null) return;
@@ -301,6 +313,7 @@ class _MyHealthTrackerAppState extends State<MyHealthTrackerApp> {
                 onRefresh: _loadAllData,
                 onAddGlucose: () => _openGlucoseSheet(innerContext),
                 onAddBP: () => _openBPSheet(innerContext),
+                onAddLifestyle: () => _openLifestyleSheet(innerContext),
                 onOpenThresholds: () => _openThresholdsSheet(innerContext),
                 onOpenAccount: () => _openAccountSheet(innerContext),
                 onGoToReminders: () => setState(() => _selectedTab = 3),
